@@ -143,6 +143,10 @@ add_subdirectory(src)
 #    add_subdirectory(tools)
 #endif(BUILD_TOOLS)
 
+
+### Added for compiling SDK
+add_subdirectory(sdk)
+
 if(BUILD_SOURCES)
     add_subdirectory(include)
     add_subdirectory(src)
