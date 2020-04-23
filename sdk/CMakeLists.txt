@@ -1,5 +1,5 @@
-set(sdk_srcs rplidar_driver.cpp)
-set(sdk_headers rplidar_driver_impl.h)
+set(sdk_srcs src/rplidar_driver.cpp)
+set(sdk_headers src/rplidar_driver_impl.h)
 
 add_library(rplidar_sdk SHARED ${sdk_srcs}
   ${sdk_headers})
