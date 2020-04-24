@@ -8,6 +8,9 @@
  */
 
 #include "RPlidarRTC.h"
+#include "rplidar.h"
+
+using namespace rp::standalone::rplidar;
 
 // Module specification
 // <rtc-template block="module_spec">
@@ -25,7 +28,7 @@ static const char* rplidarrtc_spec[] =
     "language",          "C++",
     "lang_type",         "compile",
     // Configuration variables
-    "conf.default.port_name", ""COM1"",
+    "conf.default.port_name", "COM1",
     "conf.default.baudrate", "115200",
     "conf.default.debug", "0",
     "conf.default.encoding", "2",
@@ -96,7 +99,7 @@ RTC::ReturnCode_t RPlidarRTC::onInitialize()
 
   // <rtc-template block="bind_config">
   // Bind variables and configuration variable
-  bindParameter("port_name", m_port_name, ""COM1"");
+  bindParameter("port_name", m_port_name, "COM1");
   bindParameter("baudrate", m_baudrate, "115200");
   bindParameter("debug", m_debug, "0");
   bindParameter("encoding", m_encoding, "2");
@@ -104,6 +107,7 @@ RTC::ReturnCode_t RPlidarRTC::onInitialize()
   bindParameter("geometry_y", m_geometry_y, "0");
   bindParameter("geometry_z", m_geometry_z, "0");
   // </rtc-template>
+  RPlidarDriver * drv = RPlidarDriver::CreateDriver(DRIVER_TYPE_SERIALPORT);
   
   return RTC::RTC_OK;
 }
