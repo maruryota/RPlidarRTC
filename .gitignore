@@ -3,6 +3,7 @@
 .pyc
 
 build-*
+build
 
 *.pyc
 *.bak
