@@ -137,7 +137,7 @@ RTC::ReturnCode_t RPlidarRTC::onActivated(RTC::UniqueId ec_id)
   drv = RPlidarDriver::CreateDriver(DRIVER_TYPE_SERIALPORT);
 
   if (!drv) {
-	  fprintf(stderr, "insufficent memory, exit\n");
+	  RTC_DEBUG(("insufficent memory, exit\n"));
 	  exit();
   }
   const char * opt_com_path = NULL;
@@ -149,8 +149,8 @@ RTC::ReturnCode_t RPlidarRTC::onActivated(RTC::UniqueId ec_id)
   do {
 	  // try to connect
 	  if (IS_FAIL(drv->connect(opt_com_path, opt_com_baudrate))) {
-		  fprintf(stderr, "Error, cannot bind to the specified serial port %s.\n"
-			  , opt_com_path);
+		  RTC_DEBUG(("Error, cannot bind to the specified serial port %s.\n"
+			  , opt_com_path));
 		  break;
 	  }
 
@@ -161,10 +161,10 @@ RTC::ReturnCode_t RPlidarRTC::onActivated(RTC::UniqueId ec_id)
 	  if (IS_FAIL(op_result)) {
 		  if (op_result == RESULT_OPERATION_TIMEOUT) {
 			  // you can check the detailed failure reason
-			  fprintf(stderr, "Error, operation time out.\n");
+			  RTC_DEBUG(("Error, operation time out.\n"));
 		  }
 		  else {
-			  fprintf(stderr, "Error, unexpected error, code: %x\n", op_result);
+			  RTC_DEBUG(("Error, unexpected error, code: %x\n", op_result));
 			  // other unexpected result
 		  }
 		  break;
@@ -205,13 +205,13 @@ RTC::ReturnCode_t RPlidarRTC::onActivated(RTC::UniqueId ec_id)
 
 	  }
 	  else {
-		  fprintf(stderr, "Error, cannot retrieve the lidar health code: %x\n", op_result);
+		  RTC_DEBUG(("Error, cannot retrieve the lidar health code: %x\n"));
 		  break;
 	  }
 
 
 	  if (healthinfo.status == RPLIDAR_STATUS_ERROR) {
-		  fprintf(stderr, "Error, rplidar internal error detected. Please reboot the device to retry.\n");
+		  RTC_DEBUG(("Error, rplidar internal error detected. Please reboot the device to retry.\n"));
 		  // enable the following code if you want rplidar to be reboot by software
 		  // drv->reset();
 		  break;
@@ -272,12 +272,12 @@ RTC::ReturnCode_t RPlidarRTC::onExecute(RTC::UniqueId ec_id)
 	////////////////////////////////////////////////////////////////////////////////
 	if (IS_FAIL(drv->startScan(0, 1))) // you can force rplidar to perform scan operation regardless whether the motor is rotating
 	{
-		fprintf(stderr, "Error, cannot start the scan operation.\n");
+		RTC_DEBUG(("Error, cannot start the scan operation.\n"));
 
 	}
 
 	/*if (IS_FAIL(capture_and_display(drv))) {
-		fprintf(stderr, "Error, cannot grab scan data.\n");
+		RTC_DEBUG(stderr, "Error, cannot grab scan data.\n");
 
 	}*/
 
