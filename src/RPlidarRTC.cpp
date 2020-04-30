@@ -10,7 +10,6 @@
 #include "RPlidarRTC.h"
 #include "rplidar.h"
 
-
 using namespace rp::standalone::rplidar;
 
 // Module specification
@@ -108,6 +107,7 @@ RTC::ReturnCode_t RPlidarRTC::onInitialize()
   bindParameter("geometry_y", m_geometry_y, "0");
   bindParameter("geometry_z", m_geometry_z, "0");
   // </rtc-template>
+  RPlidarDriver * drv = RPlidarDriver::CreateDriver(DRIVER_TYPE_SERIALPORT);
   
   return RTC::RTC_OK;
 }
