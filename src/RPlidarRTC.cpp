@@ -132,8 +132,6 @@ RTC::ReturnCode_t RPlidarRTC::onShutdown(RTC::UniqueId ec_id)
 }
 */
 
-RPlidarDriver * drv;
-
 RTC::ReturnCode_t RPlidarRTC::onActivated(RTC::UniqueId ec_id)
 {
   drv = RPlidarDriver::CreateDriver(DRIVER_TYPE_SERIALPORT);

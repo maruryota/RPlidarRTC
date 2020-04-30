@@ -57,6 +57,8 @@ class RPlidarRTC
    */
   ~RPlidarRTC();
 
+  RPlidarDriver * drv;
+
   // <rtc-template block="public_attribute">
   
   // </rtc-template>
@@ -163,7 +165,7 @@ class RPlidarRTC
    * 
    * 
    */
-  // virtual RTC::ReturnCode_t onAborting(RTC::UniqueId ec_id);
+  virtual RTC::ReturnCode_t onAborting(RTC::UniqueId ec_id);
 
   /***
    *
@@ -176,7 +178,7 @@ class RPlidarRTC
    * 
    * 
    */
-  // virtual RTC::ReturnCode_t onError(RTC::UniqueId ec_id);
+  virtual RTC::ReturnCode_t onError(RTC::UniqueId ec_id);
 
   /***
    *
