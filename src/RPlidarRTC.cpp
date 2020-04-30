@@ -107,7 +107,6 @@ RTC::ReturnCode_t RPlidarRTC::onInitialize()
   bindParameter("geometry_y", m_geometry_y, "0");
   bindParameter("geometry_z", m_geometry_z, "0");
   // </rtc-template>
-  RPlidarDriver * drv = RPlidarDriver::CreateDriver(DRIVER_TYPE_SERIALPORT);
   
   return RTC::RTC_OK;
 }
@@ -133,38 +132,183 @@ RTC::ReturnCode_t RPlidarRTC::onShutdown(RTC::UniqueId ec_id)
 }
 */
 
+RPlidarDriver * drv;
 
 RTC::ReturnCode_t RPlidarRTC::onActivated(RTC::UniqueId ec_id)
 {
-  RPlidarDriver * drv = RPlidarDriver::CreateDriver(DRIVER_TYPE_SERIALPORT);
+  drv = RPlidarDriver::CreateDriver(DRIVER_TYPE_SERIALPORT);
+
+  if (!drv) {
+	  fprintf(stderr, "insufficent memory, exit\n");
+	  exit();
+  }
+  const char * opt_com_path = NULL;
+  _u32         opt_com_baudrate = 115200;
+  u_result     op_result;
+
+  rplidar_response_device_health_t healthinfo;
+  rplidar_response_device_info_t devinfo;
+  do {
+	  // try to connect
+	  if (IS_FAIL(drv->connect(opt_com_path, opt_com_baudrate))) {
+		  fprintf(stderr, "Error, cannot bind to the specified serial port %s.\n"
+			  , opt_com_path);
+		  break;
+	  }
+
+	  // retrieving the device info
+	  ////////////////////////////////////////
+	  op_result = drv->getDeviceInfo(devinfo);
+
+	  if (IS_FAIL(op_result)) {
+		  if (op_result == RESULT_OPERATION_TIMEOUT) {
+			  // you can check the detailed failure reason
+			  fprintf(stderr, "Error, operation time out.\n");
+		  }
+		  else {
+			  fprintf(stderr, "Error, unexpected error, code: %x\n", op_result);
+			  // other unexpected result
+		  }
+		  break;
+	  }
+
+	  // print out the device serial number, firmware and hardware version number..
+	  printf("RPLIDAR S/N: ");
+	  for (int pos = 0; pos < 16; ++pos) {
+		  printf("%02X", devinfo.serialnum[pos]);
+	  }
+
+	  printf("\n",
+		  "Version: ", RPLIDAR_SDK_VERSION, "\n",
+		  "Firmware Ver: %d.%02d\n",
+		  "Hardware Rev: %d\n"
+		  , devinfo.firmware_version >> 8
+		  , devinfo.firmware_version & 0xFF
+		  , (int)devinfo.hardware_version);
+
+
+	  // check the device health
+	  ////////////////////////////////////////
+	  op_result = drv->getHealth(healthinfo);
+	  if (IS_OK(op_result)) { // the macro IS_OK is the preperred way to judge whether the operation is succeed.
+		  printf("RPLidar health status : ");
+		  switch (healthinfo.status) {
+		  case RPLIDAR_STATUS_OK:
+			  printf("OK.");
+			  break;
+		  case RPLIDAR_STATUS_WARNING:
+			  printf("Warning.");
+			  break;
+		  case RPLIDAR_STATUS_ERROR:
+			  printf("Error.");
+			  break;
+		  }
+		  printf(" (errorcode: %d)\n", healthinfo.error_code);
+
+	  }
+	  else {
+		  fprintf(stderr, "Error, cannot retrieve the lidar health code: %x\n", op_result);
+		  break;
+	  }
+
+
+	  if (healthinfo.status == RPLIDAR_STATUS_ERROR) {
+		  fprintf(stderr, "Error, rplidar internal error detected. Please reboot the device to retry.\n");
+		  // enable the following code if you want rplidar to be reboot by software
+		  // drv->reset();
+		  break;
+	  }
+
+  } while (0);
+
+  drv->startMotor();
+
   return RTC::RTC_OK;
 }
 
 
 RTC::ReturnCode_t RPlidarRTC::onDeactivated(RTC::UniqueId ec_id)
 {
+
+	drv->stop();
+	drv->stopMotor();
+
+	RPlidarDriver::DisposeDriver(drv);
+
   return RTC::RTC_OK;
+}
+
+u_result capture_and_display(RPlidarDriver * drv, RTC::RangeData data)
+{
+	u_result ans;
+
+	rplidar_response_measurement_node_t nodes[8192];
+	size_t   count = _countof(nodes);
+
+	printf("waiting for data...\n");
+
+	// fetech extactly one 0-360 degrees' scan
+	ans = drv->grabScanData(nodes, count);
+	if (IS_OK(ans) || ans == RESULT_OPERATION_TIMEOUT) {
+		drv->ascendScanData(nodes, count);
+
+		int key = getchar();
+		for (int pos = 0; pos < (int)count; ++pos) {
+			printf("%s theta: %03.2f Dist: %08.2f \n",
+				(nodes[pos].sync_quality & RPLIDAR_RESP_MEASUREMENT_SYNCBIT) ? "S " : "  ",
+				(nodes[pos].angle_q6_checkbit >> RPLIDAR_RESP_MEASUREMENT_ANGLE_SHIFT) / 64.0f,
+				nodes[pos].distance_q2 / 4.0f);
+		}
+	}
+	else {
+		printf("error code: %x\n", ans);
+	}
+
+	return ans;
 }
 
 
 RTC::ReturnCode_t RPlidarRTC::onExecute(RTC::UniqueId ec_id)
 {
+	// take only one 360 deg scan and display the result as a histogram
+	////////////////////////////////////////////////////////////////////////////////
+	if (IS_FAIL(drv->startScan(0, 1))) // you can force rplidar to perform scan operation regardless whether the motor is rotating
+	{
+		fprintf(stderr, "Error, cannot start the scan operation.\n");
+
+	}
+
+	/*if (IS_FAIL(capture_and_display(drv))) {
+		fprintf(stderr, "Error, cannot grab scan data.\n");
+
+	}*/
+
   return RTC::RTC_OK;
 }
 
-/*
+
 RTC::ReturnCode_t RPlidarRTC::onAborting(RTC::UniqueId ec_id)
 {
+	drv->stop();
+	drv->stopMotor();
+
+	RPlidarDriver::DisposeDriver(drv);
+
   return RTC::RTC_OK;
 }
-*/
 
-/*
+
+
 RTC::ReturnCode_t RPlidarRTC::onError(RTC::UniqueId ec_id)
 {
+	drv->stop();
+	drv->stopMotor();
+
+	RPlidarDriver::DisposeDriver(drv);
+
   return RTC::RTC_OK;
 }
-*/
+
 
 /*
 RTC::ReturnCode_t RPlidarRTC::onReset(RTC::UniqueId ec_id)
