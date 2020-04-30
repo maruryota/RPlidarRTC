@@ -1,6 +1,10 @@
 set(comp_srcs RPlidarRTC.cpp )
 set(standalone_srcs RPlidarRTCComp.cpp)
 
+include_directories(${PROJECT_SOURCE_DIR}/sdk)
+include_directories(${PROJECT_SOURCE_DIR}/sdk/include)
+include_directories(${PROJECT_SOURCE_DIR}/sdk/src)
+
 if(${OPENRTM_VERSION_MAJOR} LESS 2)
   set(OPENRTM_CFLAGS ${OPENRTM_CFLAGS} ${OMNIORB_CFLAGS})
   set(OPENRTM_INCLUDE_DIRS ${OPENRTM_INCLUDE_DIRS} ${OMNIORB_INCLUDE_DIRS})
@@ -47,12 +51,12 @@ if(NOT TARGET ALL_IDL_TGT)
  add_custom_target(ALL_IDL_TGT)
 endif(NOT TARGET ALL_IDL_TGT)
 add_dependencies(${PROJECT_NAME} ALL_IDL_TGT)
-target_link_libraries(${PROJECT_NAME} ${OPENRTM_LIBRARIES})
+target_link_libraries(${PROJECT_NAME} ${OPENRTM_LIBRARIES} rplidar_sdk)
 
 add_executable(${PROJECT_NAME}Comp ${standalone_srcs}
   ${comp_srcs} ${comp_headers} ${ALL_IDL_SRCS})
 add_dependencies(${PROJECT_NAME}Comp ALL_IDL_TGT)
-target_link_libraries(${PROJECT_NAME}Comp ${OPENRTM_LIBRARIES})
+target_link_libraries(${PROJECT_NAME}Comp ${OPENRTM_LIBRARIES} rplidar_sdk)
 
 install(TARGETS ${PROJECT_NAME} ${PROJECT_NAME}Comp
     EXPORT ${PROJECT_NAME}
