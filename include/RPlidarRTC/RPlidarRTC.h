@@ -35,6 +35,11 @@
 #include <rtm/DataInPort.h>
 #include <rtm/DataOutPort.h>
 
+#include "RPlidarRTC.h"
+#include "rplidar.h"
+
+using namespace rp::standalone::rplidar;
+
 using namespace RTC;
 
 /*!
@@ -56,8 +61,6 @@ class RPlidarRTC
    * @brief destructor
    */
   ~RPlidarRTC();
-
-  RPlidarDriver * drv;
 
   // <rtc-template block="public_attribute">
   
@@ -236,6 +239,8 @@ class RPlidarRTC
    * - Name:  port_name
    * - DefaultValue: "COM1"
    */
+  RPlidarDriver * drv;
+
   std::string m_port_name;
   /*!
    * 
