@@ -136,6 +136,14 @@ RTC::ReturnCode_t RPlidarRTC::onActivated(RTC::UniqueId ec_id)
 {
   drv = RPlidarDriver::CreateDriver(DRIVER_TYPE_SERIALPORT);
 
+  m_scan_data.geometry.geometry.pose.position.x = m_geometry_x;
+  m_scan_data.geometry.geometry.pose.position.y = m_geometry_y;
+  m_scan_data.geometry.geometry.pose.position.z = m_geometry_z;
+
+  m_scan_data.geometry.geometry.pose.orientation.p = 0;
+  m_scan_data.geometry.geometry.pose.orientation.r = 0;
+  m_scan_data.geometry.geometry.pose.orientation.y = 0;
+
   if (!drv) {
 	  RTC_DEBUG(("insufficent memory, exit\n"));
 	  exit();
@@ -171,37 +179,37 @@ RTC::ReturnCode_t RPlidarRTC::onActivated(RTC::UniqueId ec_id)
 	  }
 
 	  // print out the device serial number, firmware and hardware version number..
-	  printf("RPLIDAR S/N: ");
+	  RTC_DEBUG(("RPLIDAR S/N: "));
 	  for (int pos = 0; pos < 16; ++pos) {
-		  printf("%02X", devinfo.serialnum[pos]);
+		  RTC_DEBUG(("%02X", devinfo.serialnum[pos]));
 	  }
 
-	  printf("\n",
+	  RTC_DEBUG(("\n",
 		  "Version: ", RPLIDAR_SDK_VERSION, "\n",
 		  "Firmware Ver: %d.%02d\n",
 		  "Hardware Rev: %d\n"
 		  , devinfo.firmware_version >> 8
 		  , devinfo.firmware_version & 0xFF
-		  , (int)devinfo.hardware_version);
+		  , (int)devinfo.hardware_version));
 
 
 	  // check the device health
 	  ////////////////////////////////////////
 	  op_result = drv->getHealth(healthinfo);
 	  if (IS_OK(op_result)) { // the macro IS_OK is the preperred way to judge whether the operation is succeed.
-		  printf("RPLidar health status : ");
+		  RTC_DEBUG(("RPLidar health status : "));
 		  switch (healthinfo.status) {
 		  case RPLIDAR_STATUS_OK:
-			  printf("OK.");
+			  RTC_DEBUG(("OK."));
 			  break;
 		  case RPLIDAR_STATUS_WARNING:
-			  printf("Warning.");
+			  RTC_DEBUG(("Warning."));
 			  break;
 		  case RPLIDAR_STATUS_ERROR:
-			  printf("Error.");
+			  RTC_DEBUG(("Error."));
 			  break;
 		  }
-		  printf(" (errorcode: %d)\n", healthinfo.error_code);
+		  RTC_DEBUG((" (errorcode: %d)\n", healthinfo.error_code));
 
 	  }
 	  else {
@@ -236,36 +244,6 @@ RTC::ReturnCode_t RPlidarRTC::onDeactivated(RTC::UniqueId ec_id)
   return RTC::RTC_OK;
 }
 
-u_result capture_and_display(RPlidarDriver * drv, RTC::RangeData data)
-{
-	u_result ans;
-
-	rplidar_response_measurement_node_t nodes[8192];
-	size_t   count = _countof(nodes);
-
-	printf("waiting for data...\n");
-
-	// fetech extactly one 0-360 degrees' scan
-	ans = drv->grabScanData(nodes, count);
-	if (IS_OK(ans) || ans == RESULT_OPERATION_TIMEOUT) {
-		drv->ascendScanData(nodes, count);
-
-		int key = getchar();
-		for (int pos = 0; pos < (int)count; ++pos) {
-			printf("%s theta: %03.2f Dist: %08.2f \n",
-				(nodes[pos].sync_quality & RPLIDAR_RESP_MEASUREMENT_SYNCBIT) ? "S " : "  ",
-				(nodes[pos].angle_q6_checkbit >> RPLIDAR_RESP_MEASUREMENT_ANGLE_SHIFT) / 64.0f,
-				nodes[pos].distance_q2 / 4.0f);
-		}
-	}
-	else {
-		printf("error code: %x\n", ans);
-	}
-
-	return ans;
-}
-
-
 RTC::ReturnCode_t RPlidarRTC::onExecute(RTC::UniqueId ec_id)
 {
 	// take only one 360 deg scan and display the result as a histogram
@@ -276,10 +254,43 @@ RTC::ReturnCode_t RPlidarRTC::onExecute(RTC::UniqueId ec_id)
 
 	}
 
-	/*if (IS_FAIL(capture_and_display(drv))) {
-		RTC_DEBUG(stderr, "Error, cannot grab scan data.\n");
+	u_result ans;
 
-	}*/
+	rplidar_response_measurement_node_t nodes[8192];
+	size_t   count = _countof(nodes);
+
+	RTC_DEBUG(("waiting for data...\n"));
+
+	// fetech extactly one 0-360 degrees' scan
+	ans = drv->grabScanData(nodes, count);
+	if (IS_OK(ans) || ans == RESULT_OPERATION_TIMEOUT) {
+		drv->ascendScanData(nodes, count);
+
+		m_scan_data.config.minAngle = 0;
+		m_scan_data.config.maxAngle = 360;
+		m_scan_data.config.angularRes = 360 / (int)count;
+
+		if ((int)count != m_scan_data.ranges.length()) {
+			m_scan_data.ranges.length((int)count);
+		}
+
+		int key = getchar();
+		for (int pos = 0; pos < (int)count; ++pos) {
+			RTC_DEBUG(("%s theta: %03.2f Dist: %08.2f \n",
+				(nodes[pos].sync_quality & RPLIDAR_RESP_MEASUREMENT_SYNCBIT) ? "S " : "  ",
+				(nodes[pos].angle_q6_checkbit >> RPLIDAR_RESP_MEASUREMENT_ANGLE_SHIFT) / 64.0f,
+				nodes[pos].distance_q2 / 4.0f));
+			m_scan_data.ranges[pos] = nodes[pos].distance_q2 / 4.0f;
+		}
+		m_scan_dataOut.write();
+	}
+	else {
+		RTC_DEBUG(("error code: %x\n", ans));
+	}
+
+	if (IS_FAIL(ans)) {
+		RTC_DEBUG(("Error, cannot grab scan data.\n"));
+	}
 
   return RTC::RTC_OK;
 }
