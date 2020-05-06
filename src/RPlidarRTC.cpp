@@ -148,8 +148,8 @@ RTC::ReturnCode_t RPlidarRTC::onActivated(RTC::UniqueId ec_id)
 	  RTC_DEBUG(("insufficent memory, exit\n"));
 	  exit();
   }
-  const char * opt_com_path = NULL;
-  _u32         opt_com_baudrate = 115200;
+  const char * opt_com_path = m_port_name.c_str();
+  _u32         opt_com_baudrate = m_baudrate;
   u_result     op_result;
 
   rplidar_response_device_health_t healthinfo;
