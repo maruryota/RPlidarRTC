@@ -268,19 +268,20 @@ RTC::ReturnCode_t RPlidarRTC::onExecute(RTC::UniqueId ec_id)
 
 		m_scan_data.config.minAngle = 0;
 		m_scan_data.config.maxAngle = 360;
-		m_scan_data.config.angularRes = 360 / (int)count;
+		double double_count = (double)count;
+		double angularRes = 360.0 / double_count;
+		m_scan_data.config.angularRes = angularRes;
 
 		if ((int)count != m_scan_data.ranges.length()) {
 			m_scan_data.ranges.length((int)count);
 		}
 
-		int key = getchar();
 		for (int pos = 0; pos < (int)count; ++pos) {
 			RTC_DEBUG(("%s theta: %03.2f Dist: %08.2f \n",
 				(nodes[pos].sync_quality & RPLIDAR_RESP_MEASUREMENT_SYNCBIT) ? "S " : "  ",
 				(nodes[pos].angle_q6_checkbit >> RPLIDAR_RESP_MEASUREMENT_ANGLE_SHIFT) / 64.0f,
 				nodes[pos].distance_q2 / 4.0f));
-			m_scan_data.ranges[pos] = nodes[pos].distance_q2 / 4.0f;
+			m_scan_data.ranges[pos] = nodes[pos].distance_q2 / 4.0f / 1000;
 		}
 		m_scan_dataOut.write();
 	}
@@ -291,7 +292,7 @@ RTC::ReturnCode_t RPlidarRTC::onExecute(RTC::UniqueId ec_id)
 	if (IS_FAIL(ans)) {
 		RTC_DEBUG(("Error, cannot grab scan data.\n"));
 	}
-
+	
   return RTC::RTC_OK;
 }
 
